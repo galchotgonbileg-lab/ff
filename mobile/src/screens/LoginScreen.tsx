@@ -95,6 +95,10 @@ export function LoginScreen({ navigation }: Props) {
 
           <Button title="Нэвтрэх" onPress={handleSubmit} loading={submitting} style={{ marginTop: spacing.sm }} />
 
+          <Text style={styles.forgotLink} onPress={() => navigation.navigate("ForgotPassword")}>
+            Нууц үгээ мартсан уу?
+          </Text>
+
           <Text style={styles.phoneLink} onPress={() => navigation.navigate("PhoneLogin")}>
             Утасны дугаараар нэвтрэх
           </Text>
@@ -160,7 +164,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   errorText: { color: colors.danger, fontWeight: "600", fontSize: 14 },
-  phoneLink: { textAlign: "center", marginTop: spacing.md, color: colors.primary, fontWeight: "600", fontSize: 14 },
+  forgotLink: { textAlign: "center", marginTop: spacing.md, color: colors.textMuted, fontSize: 13 },
+  phoneLink: { textAlign: "center", marginTop: spacing.sm, color: colors.primary, fontWeight: "600", fontSize: 14 },
   divider: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.lg },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
   dividerText: { color: colors.textMuted, fontSize: 12, fontWeight: "600" },

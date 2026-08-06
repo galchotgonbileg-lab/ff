@@ -31,3 +31,13 @@ export function verifyPhoneCode(phone: string, code: string) {
     .post<AuthResponse>("/api/auth/phone/verify", { phone, code })
     .then((r) => r.data);
 }
+
+export function forgotPassword(email: string) {
+  return apiClient.post<{ ok: true }>("/api/auth/forgot-password", { email }).then((r) => r.data);
+}
+
+export function resetPassword(email: string, code: string, newPassword: string) {
+  return apiClient
+    .post<AuthResponse>("/api/auth/reset-password", { email, code, newPassword })
+    .then((r) => r.data);
+}

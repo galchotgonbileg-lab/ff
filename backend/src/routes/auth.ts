@@ -7,6 +7,7 @@ import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../lib/prisma";
 import { normalizePhone } from "../lib/phone";
 import { sendSms } from "../lib/sms";
+import { sendEmail } from "../lib/email";
 
 const router = Router();
 const googleClient = new OAuth2Client();
@@ -80,6 +81,76 @@ router.post("/login", authLimiter, async (req, res) => {
   const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: "30d" });
   res.json({
     token,
+    user: { id: user.id, email: user.email, username: user.username, avatarUrl: user.avatarUrl },
+  });
+});
+
+const forgotPasswordSchema = z.object({ email: z.string().email() });
+
+router.post("/forgot-password", authLimiter, async (req, res) => {
+  const parsed = forgotPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten() });
+  }
+  const { email } = parsed.data;
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  // Always respond ok — don't leak which emails are registered.
+  if (!user) {
+    return res.json({ ok: true });
+  }
+
+  const last = await prisma.passwordResetToken.findFirst({ where: { email }, orderBy: { createdAt: "desc" } });
+  if (last && Date.now() - last.createdAt.getTime() < OTP_RESEND_COOLDOWN_MS) {
+    return res.status(429).json({ error: "Түр хүлээгээд дахин оролдоно уу" });
+  }
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  await prisma.passwordResetToken.create({
+    data: { email, code, expiresAt: new Date(Date.now() + OTP_TTL_MS) },
+  });
+
+  await sendEmail(email, "FF — Нууц үг сэргээх код", `Таны баталгаажуулах код: ${code}. 5 минутын дотор хүчинтэй.`);
+  res.json({ ok: true });
+});
+
+const resetPasswordSchema = z.object({
+  email: z.string().email(),
+  code: z.string().min(1),
+  newPassword: z.string().min(6),
+});
+
+router.post("/reset-password", authLimiter, async (req, res) => {
+  const parsed = resetPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten() });
+  }
+  const { email, code, newPassword } = parsed.data;
+
+  const token = await prisma.passwordResetToken.findFirst({ where: { email }, orderBy: { createdAt: "desc" } });
+  if (!token || token.expiresAt < new Date()) {
+    return res.status(401).json({ error: "Код хугацаа дууссан байна" });
+  }
+  if (token.attempts >= OTP_MAX_ATTEMPTS) {
+    return res.status(429).json({ error: "Хэт олон удаа буруу оруулсан байна" });
+  }
+  if (token.code !== code) {
+    await prisma.passwordResetToken.update({ where: { id: token.id }, data: { attempts: { increment: 1 } } });
+    return res.status(401).json({ error: "Код буруу байна" });
+  }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    return res.status(404).json({ error: "Хэрэглэгч олдсонгүй" });
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+  await prisma.passwordResetToken.deleteMany({ where: { email } });
+
+  const jwtToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: "30d" });
+  res.json({
+    token: jwtToken,
     user: { id: user.id, email: user.email, username: user.username, avatarUrl: user.avatarUrl },
   });
 });

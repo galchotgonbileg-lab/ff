@@ -34,6 +34,17 @@ model PhoneOtp {
   @@index([phone])
 }
 
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
 model Account {
   id                String   @id @default(uuid())
   userId            String

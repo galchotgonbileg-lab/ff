@@ -2,10 +2,12 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { secureStorage } from "../lib/secureStorage";
 import { TOKEN_KEY } from "../api/client";
 import {
+  forgotPassword as apiForgotPassword,
   googleLogin as apiGoogleLogin,
   login as apiLogin,
   register as apiRegister,
   requestPhoneCode as apiRequestPhoneCode,
+  resetPassword as apiResetPassword,
   verifyPhoneCode as apiVerifyPhoneCode,
 } from "../api/auth";
 import { User } from "../api/types";
@@ -18,6 +20,8 @@ interface AuthContextValue {
   loginWithGoogle: (idToken: string) => Promise<void>;
   requestPhoneCode: (phone: string) => Promise<void>;
   verifyPhoneCode: (phone: string, code: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -72,6 +76,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       verifyPhoneCode: async (phone, code) => {
         const res = await apiVerifyPhoneCode(phone, code);
+        await persistSession(res.token, res.user);
+      },
+      forgotPassword: async (email) => {
+        await apiForgotPassword(email);
+      },
+      resetPassword: async (email, code, newPassword) => {
+        const res = await apiResetPassword(email, code, newPassword);
         await persistSession(res.token, res.user);
       },
       logout: async () => {

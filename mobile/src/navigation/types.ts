@@ -17,4 +17,5 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   PhoneLogin: undefined;
+  ForgotPassword: undefined;
 };

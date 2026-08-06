@@ -7,6 +7,7 @@ import { MainTabNavigator } from "./MainTabNavigator";
 import { LoginScreen } from "../screens/LoginScreen";
 import { RegisterScreen } from "../screens/RegisterScreen";
 import { PhoneLoginScreen } from "../screens/PhoneLoginScreen";
+import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
 import { colors } from "../theme";
 import type { RootStackParamList } from "./types";
 
@@ -47,6 +48,7 @@ export function RootNavigator() {
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="PhoneLogin" component={PhoneLoginScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </Stack.Group>
       </Stack.Navigator>
     </NavigationContainer>
