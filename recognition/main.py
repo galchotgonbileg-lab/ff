@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from PIL import Image
 from ultralytics import YOLO
 
-from food_classes import FOOD_CLASS_MAP
+from food_classes import get_food_class_map
 
 app = FastAPI()
 model = YOLO("yolo11n.pt")
@@ -33,11 +33,12 @@ async def detect(image: UploadFile = File(...), confidence: float = Form(DEFAULT
     except Exception:
         return JSONResponse(status_code=500, content={"error": "detection failed"})
 
+    food_class_map = get_food_class_map()
     best_by_label: dict[str, dict] = {}
     for result in results:
         for box in result.boxes:
             class_name = result.names[int(box.cls[0])]
-            label_mn = FOOD_CLASS_MAP.get(class_name)
+            label_mn = food_class_map.get(class_name)
             if label_mn is None:
                 continue
             box_confidence = float(box.conf[0])
