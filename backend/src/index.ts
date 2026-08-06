@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth";
 import recipeRoutes from "./routes/recipes";
 import userRoutes from "./routes/users";
 import adminRoutes from "./routes/admin";
+import ingredientRoutes from "./routes/ingredients";
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/recipes", recipeRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/ingredients", ingredientRoutes);
 
 app.use(express.static(path.join(__dirname, "..", "pwa")));
 

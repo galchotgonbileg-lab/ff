@@ -10,8 +10,9 @@ import {
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createRecipe, detectIngredients } from "../api/recipes";
+import { getIngredients, IngredientEntry } from "../api/ingredients";
 import { useAuth } from "../context/AuthContext";
 import { AuthPrompt } from "../components/AuthPrompt";
 import { DIFFICULTIES, RECIPE_CATEGORIES } from "../lib/recipeOptions";
@@ -28,12 +29,16 @@ function EditableList({
   placeholder,
   items,
   onChange,
+  suggestionPool,
 }: {
   label: string;
   placeholder: string;
   items: string[];
   onChange: (items: string[]) => void;
+  suggestionPool?: IngredientEntry[];
 }) {
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+
   function updateItem(index: number, value: string) {
     const next = [...items];
     next[index] = value;
@@ -44,25 +49,58 @@ function EditableList({
     onChange(items.filter((_, i) => i !== index));
   }
 
+  function suggestionsFor(query: string): IngredientEntry[] {
+    const q = query.trim().toLowerCase();
+    if (!suggestionPool || q.length < 1) return [];
+    return suggestionPool.filter((s) => s.name.toLowerCase().includes(q)).slice(0, 6);
+  }
+
   return (
     <View style={styles.section}>
       <Text style={styles.label}>{label}</Text>
-      {items.map((item, i) => (
-        <View key={i} style={styles.listRow}>
-          <View style={styles.listIndex}>
-            <Text style={styles.listIndexText}>{i + 1}</Text>
+      {items.map((item, i) => {
+        const suggestions = focusedIndex === i ? suggestionsFor(item) : [];
+        return (
+          <View key={i} style={styles.listRow}>
+            <View style={styles.listIndex}>
+              <Text style={styles.listIndexText}>{i + 1}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <TextField
+                style={{ marginBottom: 0 }}
+                placeholder={`${placeholder} ${i + 1}`}
+                value={item}
+                onChangeText={(v) => updateItem(i, v)}
+                onFocus={() => setFocusedIndex(i)}
+                onBlur={() => setTimeout(() => setFocusedIndex((f) => (f === i ? null : f)), 150)}
+              />
+              {suggestions.length > 0 && (
+                <View style={styles.suggestBox}>
+                  {suggestions.map((s) => (
+                    <Pressable
+                      key={s.name}
+                      accessibilityRole="button"
+                      style={styles.suggestRow}
+                      onPress={() => {
+                        updateItem(i, s.name);
+                        setFocusedIndex(null);
+                      }}
+                    >
+                      <Text style={styles.suggestName}>{s.name}</Text>
+                      <Text style={styles.suggestDesc} numberOfLines={1}>
+                        {s.description}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+            <Pressable accessibilityRole="button" onPress={() => removeItem(i)} style={styles.removeButton}>
+              <Text style={styles.removeButtonText}>✕</Text>
+            </Pressable>
           </View>
-          <TextField
-            style={{ flex: 1, marginBottom: 0 }}
-            placeholder={`${placeholder} ${i + 1}`}
-            value={item}
-            onChangeText={(v) => updateItem(i, v)}
-          />
-          <Pressable accessibilityRole="button" onPress={() => removeItem(i)} style={styles.removeButton}>
-            <Text style={styles.removeButtonText}>✕</Text>
-          </Pressable>
-        </View>
-      ))}
+        );
+      })}
       <Pressable accessibilityRole="button" onPress={() => onChange([...items, ""])} style={styles.addButton}>
         <Text style={styles.addButtonText}>+ Нэмэх</Text>
       </Pressable>
@@ -117,6 +155,11 @@ function mergeSuggestedIngredients(existing: string[], suggested: string[]): str
 export function CreateRecipeScreen({ navigation }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { data: ingredientPool } = useQuery({
+    queryKey: ["ingredients"],
+    queryFn: getIngredients,
+    staleTime: 1000 * 60 * 60,
+  });
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [ingredients, setIngredients] = useState<string[]>([""]);
@@ -255,7 +298,13 @@ export function CreateRecipeScreen({ navigation }: Props) {
       {aiSuggestedCount > 0 && (
         <Text style={styles.aiCaption}>🤖 Зурган дээрх орцыг санал болголоо — шалгаад засварлана уу</Text>
       )}
-      <EditableList label="Орц" placeholder="Орц" items={ingredients} onChange={setIngredients} />
+      <EditableList
+        label="Орц"
+        placeholder="Орц"
+        items={ingredients}
+        onChange={setIngredients}
+        suggestionPool={ingredientPool}
+      />
       <EditableList label="Хийх дараалал" placeholder="Алхам" items={steps} onChange={setSteps} />
 
       <Button
@@ -312,7 +361,7 @@ const styles = StyleSheet.create({
   chipTextActive: { color: "#fff" },
   metaRow: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
   metaField: { flex: 1 },
-  listRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
+  listRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm, marginBottom: spacing.sm },
   listIndex: {
     width: 26,
     height: 26,
@@ -320,10 +369,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 10,
   },
   listIndexText: { color: colors.primaryDark, fontWeight: "700", fontSize: 12 },
-  removeButton: { padding: spacing.sm },
+  removeButton: { padding: spacing.sm, marginTop: 2 },
   removeButtonText: { color: colors.textMuted, fontSize: 16 },
   addButton: { alignSelf: "flex-start", marginTop: spacing.xs },
   addButtonText: { color: colors.primary, fontWeight: "700" },
+  suggestBox: {
+    marginTop: -spacing.sm,
+    marginBottom: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    overflow: "hidden",
+  },
+  suggestRow: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  suggestName: { color: colors.text, fontWeight: "700", fontSize: 14 },
+  suggestDesc: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
 });
