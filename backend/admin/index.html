@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="utf-8" />
+<title>FF Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #0b0c1f;
+    --surface: #14162b;
+    --border: rgba(255,255,255,0.09);
+    --text: #f1eefc;
+    --muted: #9490b8;
+    --primary: #8b5cf6;
+    --primary-dark: #c4b5fd;
+    --danger: #ff6b81;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  #login {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #login form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    width: 320px;
+  }
+  h1 { font-size: 22px; margin: 0 0 20px; }
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+  }
+  input::placeholder { color: var(--muted); }
+  button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  button:hover { opacity: 0.9; }
+  button.danger { background: transparent; border: 1.5px solid var(--danger); color: var(--danger); width: auto; padding: 6px 12px; font-size: 13px; }
+  #error { color: var(--danger); font-size: 13px; margin-bottom: 10px; min-height: 16px; }
+
+  #app { display: none; max-width: 1000px; margin: 0 auto; padding: 24px; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  header h1 { margin: 0; }
+  #logout { width: auto; padding: 8px 16px; background: transparent; border: 1.5px solid var(--primary); color: var(--primary-dark); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+  .stat .value { font-size: 24px; font-weight: 800; color: var(--primary-dark); }
+  .stat .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .chart-card h3 { margin: 0 0 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--muted); }
+  .chart-card svg { display: block; width: 100%; }
+  .chart-bar { fill: var(--primary); transition: fill 0.1s; }
+  .chart-bar:hover, .chart-bar.hovered { fill: var(--primary-dark); }
+  .chart-axis-label { fill: var(--muted); font-size: 10px; }
+  .chart-baseline { stroke: var(--border); stroke-width: 1; }
+  .chart-tooltip {
+    position: fixed;
+    display: none;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 20;
+    white-space: nowrap;
+  }
+  .chart-tooltip .tt-value { font-weight: 800; color: var(--text); }
+  .chart-tooltip .tt-label { color: var(--muted); margin-top: 2px; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab { padding: 8px 16px; border-radius: 8px; border: 1.5px solid var(--border); cursor: pointer; font-weight: 600; font-size: 13px; }
+  .tab.active { background: var(--primary); border-color: var(--primary); }
+
+  .search { margin-bottom: 12px; }
+  .search input { margin-bottom: 0; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; overflow: hidden; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
+  th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 11px; }
+  tr:last-child td { border-bottom: none; }
+  .empty { text-align: center; color: var(--muted); padding: 30px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; }
+  .pagination button { width: auto; padding: 6px 14px; font-size: 13px; background: var(--surface); border: 1.5px solid var(--border); color: var(--text); }
+  .pagination button:disabled { opacity: 0.35; cursor: default; }
+  .pagination span { color: var(--muted); font-size: 13px; }
+
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover { background: rgba(255,255,255,0.03); }
+
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(5,4,15,0.6);
+    align-items: center; justify-content: center;
+    z-index: 10;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal h2 { margin: 0 0 4px; font-size: 20px; }
+  .modal .meta { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .modal h3 { font-size: 13px; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
+  .modal ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+  .modal ol { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+  .modal .close { margin-top: 20px; background: transparent; border: 1.5px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <form id="login-form">
+    <h1>FF Admin</h1>
+    <div id="error"></div>
+    <input type="password" id="password" placeholder="Admin нууц үг" autofocus />
+    <button type="submit">Нэвтрэх</button>
+  </form>
+</div>
+
+<div id="app">
+  <header>
+    <h1>FF Admin</h1>
+    <button id="logout">Гарах</button>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="charts">
+    <div class="chart-card">
+      <h3>Шинэ хэрэглэгч (14 хоног)</h3>
+      <svg id="chart-users" viewBox="0 0 440 140"></svg>
+    </div>
+    <div class="chart-card">
+      <h3>Шинэ жор (14 хоног)</h3>
+      <svg id="chart-recipes" viewBox="0 0 440 140"></svg>
+    </div>
+  </div>
+  <div class="chart-tooltip" id="chart-tooltip"></div>
+
+  <div class="tabs">
+    <div class="tab active" data-panel="users">Хэрэглэгчид</div>
+    <div class="tab" data-panel="recipes">Жорууд</div>
+    <div class="tab" data-panel="comments">Сэтгэгдэл</div>
+  </div>
+
+  <div class="search">
+    <input id="search-input" placeholder="Хайх..." />
+  </div>
+
+  <div class="panel active" id="panel-users">
+    <table>
+      <thead><tr><th>Хэрэглэгч</th><th>Email</th><th>Жор</th><th>Сэтгэгдэл</th><th></th></tr></thead>
+      <tbody id="users-body"></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="panel-recipes">
+    <table>
+      <thead><tr><th>Гарчиг</th><th>Зохиогч</th><th>❤️</th><th>💬</th><th>🔖</th><th></th></tr></thead>
+      <tbody id="recipes-body"></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="panel-comments">
+    <table>
+      <thead><tr><th>Хэрэглэгч</th><th>Жор</th><th>Текст</th><th></th></tr></thead>
+      <tbody id="comments-body"></tbody>
+    </table>
+  </div>
+
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+  const TOKEN_KEY = "ff_admin_token";
+  let token = localStorage.getItem(TOKEN_KEY);
+  let activePanel = "users";
+  let currentPage = 1;
+
+  function api(path, opts = {}) {
+    return fetch("/api/admin" + path, {
+      ...opts,
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token, ...(opts.headers || {}) },
+    }).then(async (r) => {
+      if (r.status === 401 || r.status === 403) {
+        logout();
+        throw new Error("Unauthorized");
+      }
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Request failed");
+      return r.status === 204 ? null : r.json();
+    });
+  }
+
+  function logout() {
+    token = null;
+    localStorage.removeItem(TOKEN_KEY);
+    document.getElementById("app").style.display = "none";
+    document.getElementById("login").style.display = "flex";
+  }
+
+  function showApp() {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    loadStats();
+    loadTimeseries();
+    loadPanel();
+  }
+
+  document.getElementById("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const password = document.getElementById("password").value;
+    const errEl = document.getElementById("error");
+    errEl.textContent = "";
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Нэвтэрч чадсангүй");
+      token = data.token;
+      localStorage.setItem(TOKEN_KEY, token);
+      showApp();
+    } catch (err) {
+      errEl.textContent = err.message;
+    }
+  });
+
+  document.getElementById("logout").addEventListener("click", logout);
+
+  document.querySelectorAll(".tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+      tab.classList.add("active");
+      activePanel = tab.dataset.panel;
+      document.getElementById("panel-" + activePanel).classList.add("active");
+      document.getElementById("search-input").value = "";
+      currentPage = 1;
+      loadPanel();
+    });
+  });
+
+  let searchTimer;
+  document.getElementById("search-input").addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    currentPage = 1;
+    searchTimer = setTimeout(loadPanel, 300);
+  });
+
+  async function loadStats() {
+    const s = await api("/stats").catch(() => null);
+    if (!s) return;
+    document.getElementById("stats").innerHTML = `
+      <div class="stat"><div class="value">${s.userCount}</div><div class="label">Хэрэглэгч</div></div>
+      <div class="stat"><div class="value">${s.recipeCount}</div><div class="label">Жор</div></div>
+      <div class="stat"><div class="value">${s.commentCount}</div><div class="label">Сэтгэгдэл</div></div>
+      <div class="stat"><div class="value">${s.likeCount}</div><div class="label">Like</div></div>
+      <div class="stat"><div class="value">${s.favoriteCount}</div><div class="label">Хадгалсан</div></div>
+    `;
+  }
+
+  function roundedTopBarPath(x, y, w, h, r) {
+    if (h <= 0) return "";
+    r = Math.min(r, w / 2, h);
+    return `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z`;
+  }
+
+  function shortDate(iso) {
+    const [, m, d] = iso.split("-");
+    return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
+  }
+
+  function renderBarChart(svgId, days, field, seriesLabel) {
+    const svg = document.getElementById(svgId);
+    const tooltip = document.getElementById("chart-tooltip");
+    const W = 440, H = 140, padBottom = 20, padTop = 10;
+    const plotH = H - padBottom - padTop;
+    const n = days.length;
+    const slot = W / n;
+    const barW = Math.min(24, slot - 4);
+    const max = Math.max(1, ...days.map((d) => d[field]));
+
+    let svgHtml = `<line class="chart-baseline" x1="0" y1="${H - padBottom}" x2="${W}" y2="${H - padBottom}" />`;
+
+    days.forEach((d, i) => {
+      const value = d[field];
+      const h = (value / max) * plotH;
+      const x = i * slot + (slot - barW) / 2;
+      const y = H - padBottom - h;
+      const path = value > 0 ? roundedTopBarPath(x, y, barW, h, 4) : "";
+      svgHtml += `<path class="chart-bar" d="${path}" data-date="${d.date}" data-value="${value}" />`;
+      if (i === 0 || i === n - 1 || i === Math.floor(n / 2)) {
+        svgHtml += `<text class="chart-axis-label" x="${x + barW / 2}" y="${H - 4}" text-anchor="middle">${esc(shortDate(d.date))}</text>`;
+      }
+    });
+
+    svg.innerHTML = svgHtml;
+
+    svg.querySelectorAll(".chart-bar").forEach((bar) => {
+      bar.addEventListener("pointerenter", (e) => {
+        const { date, value } = bar.dataset;
+        tooltip.innerHTML = "";
+        const valueEl = document.createElement("div");
+        valueEl.className = "tt-value";
+        valueEl.textContent = `${value} ${seriesLabel}`;
+        const labelEl = document.createElement("div");
+        labelEl.className = "tt-label";
+        labelEl.textContent = date;
+        tooltip.appendChild(valueEl);
+        tooltip.appendChild(labelEl);
+        tooltip.style.display = "block";
+      });
+      bar.addEventListener("pointermove", (e) => {
+        tooltip.style.left = e.clientX + 12 + "px";
+        tooltip.style.top = e.clientY - 30 + "px";
+      });
+      bar.addEventListener("pointerleave", () => {
+        tooltip.style.display = "none";
+      });
+    });
+  }
+
+  async function loadTimeseries() {
+    const data = await api("/timeseries").catch(() => null);
+    if (!data) return;
+    renderBarChart("chart-users", data.days, "users", "хэрэглэгч");
+    renderBarChart("chart-recipes", data.days, "recipes", "жор");
+  }
+
+  function esc(str) {
+    return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  async function loadPanel() {
+    const search = document.getElementById("search-input").value.trim();
+    if (activePanel === "users") return loadUsers(search);
+    if (activePanel === "recipes") return loadRecipes(search);
+    if (activePanel === "comments") return loadComments(search);
+  }
+
+  function renderPagination(total, page, pageSize) {
+    const el = document.getElementById("pagination");
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if (totalPages <= 1) {
+      el.innerHTML = "";
+      return;
+    }
+    el.innerHTML = `
+      <button id="prev-page" ${page <= 1 ? "disabled" : ""}>← Өмнөх</button>
+      <span>${page} / ${totalPages}</span>
+      <button id="next-page" ${page >= totalPages ? "disabled" : ""}>Дараах →</button>
+    `;
+    document.getElementById("prev-page")?.addEventListener("click", () => { currentPage--; loadPanel(); });
+    document.getElementById("next-page")?.addEventListener("click", () => { currentPage++; loadPanel(); });
+  }
+
+  async function loadUsers(search) {
+    const { users, total, pageSize } = await api(`/users?search=${encodeURIComponent(search)}&page=${currentPage}`).catch(() => ({ users: [], total: 0, pageSize: 20 }));
+    const body = document.getElementById("users-body");
+    if (users.length === 0) {
+      body.innerHTML = `<tr><td colspan="5" class="empty">Хэрэглэгч алга</td></tr>`;
+    } else {
+      body.innerHTML = users.map((u) => `
+        <tr>
+          <td>${esc(u.username)}</td>
+          <td>${esc(u.email)}</td>
+          <td>${u._count.recipes}</td>
+          <td>${u._count.comments}</td>
+          <td><button class="danger" data-action="delete-user" data-id="${u.id}">Устгах</button></td>
+        </tr>
+      `).join("");
+    }
+    renderPagination(total, currentPage, pageSize);
+  }
+
+  async function loadRecipes(search) {
+    const { recipes, total, pageSize } = await api(`/recipes?search=${encodeURIComponent(search)}&page=${currentPage}`).catch(() => ({ recipes: [], total: 0, pageSize: 20 }));
+    const body = document.getElementById("recipes-body");
+    if (recipes.length === 0) {
+      body.innerHTML = `<tr><td colspan="6" class="empty">Жор алга</td></tr>`;
+    } else {
+      body.innerHTML = recipes.map((r) => `
+        <tr class="clickable" data-action="view-recipe" data-id="${r.id}">
+          <td>${esc(r.title)}</td>
+          <td>${esc(r.author?.username ?? "—")}</td>
+          <td>${r._count.likes}</td>
+          <td>${r._count.comments}</td>
+          <td>${r._count.favorites}</td>
+          <td><button class="danger" data-action="delete-recipe" data-id="${r.id}">Устгах</button></td>
+        </tr>
+      `).join("");
+    }
+    renderPagination(total, currentPage, pageSize);
+  }
+
+  async function loadComments(search) {
+    const { comments, total, pageSize } = await api(`/comments?search=${encodeURIComponent(search)}&page=${currentPage}`).catch(() => ({ comments: [], total: 0, pageSize: 20 }));
+    const body = document.getElementById("comments-body");
+    if (comments.length === 0) {
+      body.innerHTML = `<tr><td colspan="4" class="empty">Сэтгэгдэл алга</td></tr>`;
+    } else {
+      body.innerHTML = comments.map((c) => `
+        <tr>
+          <td>${esc(c.user?.username ?? "—")}</td>
+          <td>${esc(c.recipe?.title ?? "—")}</td>
+          <td>${esc(c.text)}</td>
+          <td><button class="danger" data-action="delete-comment" data-id="${c.id}">Устгах</button></td>
+        </tr>
+      `).join("");
+    }
+    renderPagination(total, currentPage, pageSize);
+  }
+
+  function closeModal() {
+    document.getElementById("modal-overlay").classList.remove("active");
+  }
+
+  async function openRecipeModal(id) {
+    const r = await api("/recipes/" + id).catch(() => null);
+    if (!r) return;
+    document.getElementById("modal-content").innerHTML = `
+      <h2>${esc(r.title)}</h2>
+      <div class="meta">Зохиогч: ${esc(r.author?.username ?? "—")} · ❤️ ${r._count.likes} · 💬 ${r._count.comments} · 🔖 ${r._count.favorites}</div>
+      <div>${esc(r.description)}</div>
+      <h3>Орц</h3>
+      <ul>${r.ingredients.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>
+      <h3>Хийх дараалал</h3>
+      <ol>${r.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>
+      <button class="close" id="modal-close">Хаах</button>
+    `;
+    document.getElementById("modal-overlay").classList.add("active");
+    document.getElementById("modal-close").addEventListener("click", closeModal);
+  }
+
+  document.getElementById("modal-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "modal-overlay") closeModal();
+  });
+
+  document.body.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-action]");
+    if (btn) {
+      const { action, id } = btn.dataset;
+      if (!confirm("Устгахдаа итгэлтэй байна уу?")) return;
+
+      if (action === "delete-user") await api("/users/" + id, { method: "DELETE" }).catch(() => null);
+      if (action === "delete-recipe") await api("/recipes/" + id, { method: "DELETE" }).catch(() => null);
+      if (action === "delete-comment") await api("/comments/" + id, { method: "DELETE" }).catch(() => null);
+
+      loadStats();
+      loadTimeseries();
+      loadPanel();
+      return;
+    }
+
+    const row = e.target.closest('tr[data-action="view-recipe"]');
+    if (row) openRecipeModal(row.dataset.id);
+  });
+
+  if (token) showApp();
+</script>
+</body>
+</html>

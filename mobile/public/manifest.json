@@ -1,0 +1,16 @@
+{
+  "short_name": "FF",
+  "name": "FF - Хоолны жор",
+  "description": "Хоолны орц, жор хуваалцдаг social network",
+  "icons": [
+    { "src": "/icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#e0632b",
+  "background_color": "#ffffff"
+}
