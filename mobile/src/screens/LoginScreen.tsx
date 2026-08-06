@@ -10,9 +10,9 @@ import { AppStoreBadges } from "../components/AppStoreBadges";
 import { GOOGLE_CLIENT_ID } from "../config/google";
 import { colors, radius, shadow, spacing, typography } from "../theme";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { AuthStackParamList } from "../navigation/types";
+import type { RootStackParamList } from "../navigation/types";
 
-type Props = NativeStackScreenProps<AuthStackParamList, "Login">;
+type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
 export function LoginScreen({ navigation }: Props) {
   const { login, loginWithGoogle } = useAuth();
@@ -26,6 +26,7 @@ export function LoginScreen({ navigation }: Props) {
     setError(null);
     try {
       await login(email.trim(), password);
+      navigation.navigate("Main");
     } catch (err: any) {
       setError(getAuthErrorMessage(err));
     } finally {
@@ -38,11 +39,12 @@ export function LoginScreen({ navigation }: Props) {
       setError(null);
       try {
         await loginWithGoogle(idToken);
+        navigation.navigate("Main");
       } catch (err: any) {
         setError(getAuthErrorMessage(err));
       }
     },
-    [loginWithGoogle]
+    [loginWithGoogle, navigation]
   );
 
   return (
@@ -51,6 +53,11 @@ export function LoginScreen({ navigation }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <Starfield />
+      {navigation.canGoBack() && (
+        <Text accessibilityRole="button" style={styles.closeButton} onPress={() => navigation.goBack()}>
+          ✕
+        </Text>
+      )}
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.brand}>
           <View style={styles.logo}>
@@ -114,6 +121,15 @@ export function LoginScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  closeButton: {
+    position: "absolute",
+    top: spacing.xl,
+    right: spacing.xl,
+    zIndex: 1,
+    fontSize: 20,
+    color: colors.textMuted,
+    padding: spacing.sm,
+  },
   scroll: { flexGrow: 1, justifyContent: "center", padding: spacing.xl },
   brand: { alignItems: "center", marginBottom: spacing.xl },
   logo: {

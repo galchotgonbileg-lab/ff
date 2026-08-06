@@ -24,6 +24,7 @@ import {
 import { Avatar } from "../components/Avatar";
 import { ActionChip } from "../components/ActionChip";
 import { AnimatedPressable } from "../components/AnimatedPressable";
+import { useAuth } from "../context/AuthContext";
 import { colors, radius, shadow, spacing, typography } from "../theme";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { FeedStackParamList } from "../navigation/types";
@@ -55,8 +56,17 @@ function RecipeFacts({ recipe }: { recipe: NonNullable<Awaited<ReturnType<typeof
 
 export function RecipeDetailScreen({ route, navigation }: Props) {
   const { recipeId } = route.params;
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");
+
+  function requireAuth(action: () => void) {
+    if (user) {
+      action();
+    } else {
+      (navigation as any).navigate("Login");
+    }
+  }
 
   const { data: recipe, isLoading } = useQuery({
     queryKey: ["recipe", recipeId],
@@ -119,13 +129,13 @@ export function RecipeDetailScreen({ route, navigation }: Props) {
             <ActionChip
               label={`${recipe.likedByMe ? "❤️" : "🤍"} ${recipe.likeCount}`}
               active={!!recipe.likedByMe}
-              onPress={() => likeMutation.mutate()}
+              onPress={() => requireAuth(() => likeMutation.mutate())}
               disabled={likeMutation.isPending}
             />
             <ActionChip
               label={`${recipe.savedByMe ? "🔖" : "📑"} ${recipe.savedByMe ? "Хадгалсан" : "Хадгалах"}`}
               active={!!recipe.savedByMe}
-              onPress={() => saveMutation.mutate()}
+              onPress={() => requireAuth(() => saveMutation.mutate())}
               disabled={saveMutation.isPending}
             />
           </View>
@@ -172,24 +182,34 @@ export function RecipeDetailScreen({ route, navigation }: Props) {
           )}
         </View>
       </ScrollView>
-      <View style={styles.commentInputRow}>
-        <TextInput
-          style={styles.commentInput}
-          placeholder="Сэтгэгдэл бичих..."
-          placeholderTextColor={colors.textMuted}
-          value={commentText}
-          onChangeText={setCommentText}
-        />
-        <AnimatedPressable
+      {user ? (
+        <View style={styles.commentInputRow}>
+          <TextInput
+            style={styles.commentInput}
+            placeholder="Сэтгэгдэл бичих..."
+            placeholderTextColor={colors.textMuted}
+            value={commentText}
+            onChangeText={setCommentText}
+          />
+          <AnimatedPressable
+            accessibilityRole="button"
+            scaleTo={0.88}
+            style={[styles.sendButton, (!commentText.trim() || commentMutation.isPending) && styles.sendButtonDisabled]}
+            disabled={!commentText.trim() || commentMutation.isPending}
+            onPress={() => commentMutation.mutate(commentText.trim())}
+          >
+            <Text style={styles.sendButtonText}>➤</Text>
+          </AnimatedPressable>
+        </View>
+      ) : (
+        <Pressable
           accessibilityRole="button"
-          scaleTo={0.88}
-          style={[styles.sendButton, (!commentText.trim() || commentMutation.isPending) && styles.sendButtonDisabled]}
-          disabled={!commentText.trim() || commentMutation.isPending}
-          onPress={() => commentMutation.mutate(commentText.trim())}
+          style={styles.commentLoginRow}
+          onPress={() => (navigation as any).navigate("Login")}
         >
-          <Text style={styles.sendButtonText}>➤</Text>
-        </AnimatedPressable>
-      </View>
+          <Text style={styles.commentLoginText}>Сэтгэгдэл бичихийн тулд нэвтэрнэ үү</Text>
+        </Pressable>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -266,4 +286,12 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: { opacity: 0.4 },
   sendButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  commentLoginRow: {
+    padding: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+  },
+  commentLoginText: { color: colors.primary, fontWeight: "700", fontSize: 14 },
 });

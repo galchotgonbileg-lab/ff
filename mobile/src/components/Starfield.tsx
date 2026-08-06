@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useEffect, useMemo, useRef } from "react";
+import { Animated, Easing, StyleSheet, View } from "react-native";
 
 // Deterministic pseudo-random so the field doesn't reshuffle on every re-render.
 function seededRandom(seed: number) {
@@ -7,14 +7,102 @@ function seededRandom(seed: number) {
   return x - Math.floor(x);
 }
 
+type StarSpec = {
+  top: string;
+  left: string;
+  size: number;
+  baseOpacity: number;
+  floatDistance: number;
+  floatDuration: number;
+  twinkleDuration: number;
+  delay: number;
+};
+
+function Star({ spec }: { spec: StarSpec }) {
+  const twinkle = useRef(new Animated.Value(0)).current;
+  const float = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const twinkleLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(twinkle, {
+          toValue: 1,
+          duration: spec.twinkleDuration,
+          delay: spec.delay,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(twinkle, {
+          toValue: 0,
+          duration: spec.twinkleDuration,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    const floatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(float, {
+          toValue: 1,
+          duration: spec.floatDuration,
+          delay: spec.delay,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(float, {
+          toValue: 0,
+          duration: spec.floatDuration,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    twinkleLoop.start();
+    floatLoop.start();
+    return () => {
+      twinkleLoop.stop();
+      floatLoop.stop();
+    };
+  }, [twinkle, float, spec]);
+
+  const opacity = twinkle.interpolate({
+    inputRange: [0, 1],
+    outputRange: [spec.baseOpacity * 0.25, spec.baseOpacity],
+  });
+  const translateY = float.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, spec.floatDistance],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.star,
+        {
+          top: spec.top as any,
+          left: spec.left as any,
+          width: spec.size,
+          height: spec.size,
+          opacity,
+          transform: [{ translateY }],
+        },
+      ]}
+    />
+  );
+}
+
 export function Starfield({ count = 60 }: { count?: number }) {
-  const stars = useMemo(
+  const stars = useMemo<StarSpec[]>(
     () =>
       Array.from({ length: count }, (_, i) => ({
         top: `${seededRandom(i * 12.9898) * 100}%`,
         left: `${seededRandom(i * 78.233) * 100}%`,
         size: 1 + seededRandom(i * 37.719) * 2.2,
-        opacity: 0.25 + seededRandom(i * 93.989) * 0.6,
+        baseOpacity: 0.25 + seededRandom(i * 93.989) * 0.6,
+        floatDistance: 6 + seededRandom(i * 15.73) * 10,
+        floatDuration: 2200 + seededRandom(i * 51.11) * 2600,
+        twinkleDuration: 1200 + seededRandom(i * 27.61) * 1800,
+        delay: seededRandom(i * 63.97) * 2000,
       })),
     [count]
   );
@@ -22,19 +110,7 @@ export function Starfield({ count = 60 }: { count?: number }) {
   return (
     <View style={styles.container} pointerEvents="none">
       {stars.map((star, i) => (
-        <View
-          key={i}
-          style={[
-            styles.star,
-            {
-              top: star.top as any,
-              left: star.left as any,
-              width: star.size,
-              height: star.size,
-              opacity: star.opacity,
-            },
-          ]}
-        />
+        <Star key={i} spec={star} />
       ))}
     </View>
   );

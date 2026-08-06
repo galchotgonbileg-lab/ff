@@ -22,7 +22,6 @@ export function WebFrame({ children }: { children: React.ReactNode }) {
           borderLeftWidth: 1,
           borderRightWidth: 1,
           borderColor: colors.border,
-          // @ts-expect-error web-only style
           boxShadow: "0 0 60px rgba(0,0,0,0.6)",
         }}
       >

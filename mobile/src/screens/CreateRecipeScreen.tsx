@@ -12,6 +12,8 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createRecipe, detectIngredients } from "../api/recipes";
+import { useAuth } from "../context/AuthContext";
+import { AuthPrompt } from "../components/AuthPrompt";
 import { DIFFICULTIES, RECIPE_CATEGORIES } from "../lib/recipeOptions";
 import { Button } from "../components/Button";
 import { TextField } from "../components/TextField";
@@ -113,6 +115,7 @@ function mergeSuggestedIngredients(existing: string[], suggested: string[]): str
 }
 
 export function CreateRecipeScreen({ navigation }: Props) {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -195,6 +198,10 @@ export function CreateRecipeScreen({ navigation }: Props) {
       servings: toPositiveNumber(servings),
       imageUri,
     });
+  }
+
+  if (!user) {
+    return <AuthPrompt emoji="📝" message="Жор нийтлэхийн тулд нэвтэрнэ үү" />;
   }
 
   return (

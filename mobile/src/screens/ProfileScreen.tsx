@@ -7,6 +7,7 @@ import { getUserFavorites, getUserProfile } from "../api/recipes";
 import { RecipeCard } from "../components/RecipeCard";
 import { Avatar } from "../components/Avatar";
 import { EmptyState } from "../components/EmptyState";
+import { AuthPrompt } from "../components/AuthPrompt";
 import { colors, radius, spacing, typography } from "../theme";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation/types";
@@ -30,7 +31,9 @@ export function ProfileScreen() {
     enabled: !!user,
   });
 
-  if (!user) return null;
+  if (!user) {
+    return <AuthPrompt emoji="👤" message="Профайлаа харах, жороо нийтлэхийн тулд нэвтэрнэ үү" />;
+  }
 
   const recipes = tab === "mine" ? profile?.recipes ?? [] : favorites;
   const isLoading = tab === "mine" ? isProfileLoading : isFavoritesLoading;

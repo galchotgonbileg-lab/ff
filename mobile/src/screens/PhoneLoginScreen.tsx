@@ -7,9 +7,9 @@ import { TextField } from "../components/TextField";
 import { Starfield } from "../components/Starfield";
 import { colors, radius, shadow, spacing, typography } from "../theme";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import type { AuthStackParamList } from "../navigation/types";
+import type { RootStackParamList } from "../navigation/types";
 
-type Props = NativeStackScreenProps<AuthStackParamList, "PhoneLogin">;
+type Props = NativeStackScreenProps<RootStackParamList, "PhoneLogin">;
 
 export function PhoneLoginScreen({ navigation }: Props) {
   const { requestPhoneCode, verifyPhoneCode } = useAuth();
@@ -37,6 +37,7 @@ export function PhoneLoginScreen({ navigation }: Props) {
     setError(null);
     try {
       await verifyPhoneCode(phone.trim(), code.trim());
+      navigation.navigate("Main");
     } catch (err: any) {
       setError(getPhoneAuthErrorMessage(err));
     } finally {
@@ -50,6 +51,11 @@ export function PhoneLoginScreen({ navigation }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <Starfield />
+      {navigation.canGoBack() && (
+        <Text accessibilityRole="button" style={styles.closeButton} onPress={() => navigation.goBack()}>
+          ✕
+        </Text>
+      )}
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.brand}>
           <View style={styles.logo}>
@@ -126,6 +132,15 @@ export function PhoneLoginScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  closeButton: {
+    position: "absolute",
+    top: spacing.xl,
+    right: spacing.xl,
+    zIndex: 1,
+    fontSize: 20,
+    color: colors.textMuted,
+    padding: spacing.sm,
+  },
   scroll: { flexGrow: 1, justifyContent: "center", padding: spacing.xl },
   brand: { alignItems: "center", marginBottom: spacing.xl },
   logo: {
