@@ -1,0 +1,64 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "backend/**"
+      - "mobile/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REMOTE_APP: /home/deltasoft/ff-app
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy backend (src + build + restart)
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            backend/src/ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:$REMOTE_APP/src/"
+          rsync -az \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            backend/prisma/ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:$REMOTE_APP/prisma/"
+          ssh -i ~/.ssh/deploy_key "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "cd $REMOTE_APP && npm install && npm run build && sudo -n /usr/local/bin/pm2 restart start_ff"
+
+      - name: Build mobile web export
+        run: |
+          cd mobile
+          npm ci
+          npx expo export -p web
+
+      - name: Deploy mobile web (pwa) with rollback backup
+        run: |
+          REMOTE="${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}"
+          SSH="ssh -i ~/.ssh/deploy_key $REMOTE"
+          $SSH "rm -rf $REMOTE_APP/pwa_new_tmp && mkdir -p $REMOTE_APP/pwa_new_tmp"
+          rsync -az -e "ssh -i ~/.ssh/deploy_key" mobile/dist/ "$REMOTE:$REMOTE_APP/pwa_new_tmp/"
+          $SSH "rm -rf $REMOTE_APP/pwa_old && mv $REMOTE_APP/pwa $REMOTE_APP/pwa_old && mv $REMOTE_APP/pwa_new_tmp $REMOTE_APP/pwa"
+
+      - name: Health check
+        run: |
+          sleep 5
+          curl -sf -m 15 "https://ff.gbogd.com/api/health"
