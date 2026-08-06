@@ -5,6 +5,7 @@ import { prisma } from "../lib/prisma";
 import { requireAuth, optionalAuth, AuthRequest } from "../middleware/auth";
 import { upload } from "../lib/upload";
 import { detectIngredients } from "../lib/recognitionClient";
+import { notify } from "../lib/notify";
 
 const router = Router();
 
@@ -212,11 +213,13 @@ router.post("/:id/like", requireAuth, async (req: AuthRequest, res) => {
     return res.status(404).json({ error: "Recipe not found" });
   }
 
-  await prisma.like.upsert({
+  const existing = await prisma.like.findUnique({
     where: { userId_recipeId: { userId: req.userId!, recipeId } },
-    create: { userId: req.userId!, recipeId },
-    update: {},
   });
+  if (!existing) {
+    await prisma.like.create({ data: { userId: req.userId!, recipeId } });
+    await notify({ userId: recipe.authorId, actorId: req.userId!, type: "LIKE", recipeId });
+  }
 
   const likeCount = await prisma.like.count({ where: { recipeId } });
   res.status(201).json({ likeCount, likedByMe: true });
@@ -263,6 +266,8 @@ router.post("/:id/comments", requireAuth, async (req: AuthRequest, res) => {
     data: { userId: req.userId!, recipeId, text: parsed.data.text },
     include: { user: { select: { id: true, username: true, avatarUrl: true } } },
   });
+
+  await notify({ userId: recipe.authorId, actorId: req.userId!, type: "COMMENT", recipeId });
 
   res.status(201).json(comment);
 });

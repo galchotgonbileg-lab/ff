@@ -113,10 +113,30 @@ export function postComment(recipeId: string, text: string) {
 
 export function getUserProfile(id: string) {
   return apiClient
-    .get<User & { createdAt: string; recipes: Recipe[] }>(`/api/users/${id}`)
+    .get<
+      User & {
+        createdAt: string;
+        recipes: Recipe[];
+        followerCount: number;
+        followingCount: number;
+        followedByMe: boolean;
+      }
+    >(`/api/users/${id}`)
     .then((r) => r.data);
 }
 
 export function getUserFavorites(id: string) {
   return apiClient.get<{ recipes: Recipe[] }>(`/api/users/${id}/favorites`).then((r) => r.data.recipes);
+}
+
+export function followUser(id: string) {
+  return apiClient
+    .post<{ followerCount: number; followedByMe: boolean }>(`/api/users/${id}/follow`)
+    .then((r) => r.data);
+}
+
+export function unfollowUser(id: string) {
+  return apiClient
+    .delete<{ followerCount: number; followedByMe: boolean }>(`/api/users/${id}/follow`)
+    .then((r) => r.data);
 }

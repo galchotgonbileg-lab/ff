@@ -21,6 +21,11 @@ model User {
   likes        Like[]
   favorites    Favorite[]
   comments     Comment[]
+
+  following    Follow[]       @relation("following")
+  followers    Follow[]       @relation("followers")
+  notifications      Notification[] @relation("recipient")
+  triggeredNotifications Notification[] @relation("actor")
 }
 
 model PhoneOtp {
@@ -76,6 +81,7 @@ model Recipe {
   likes       Like[]
   favorites   Favorite[]
   comments    Comment[]
+  notifications Notification[]
 
   @@index([authorId])
   @@index([category])
@@ -115,4 +121,37 @@ model Favorite {
 
   @@unique([userId, recipeId])
   @@index([recipeId])
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  follower    User     @relation("following", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  followingUser User   @relation("followers", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+}
+
+model Notification {
+  id        String            @id @default(uuid())
+  userId    String
+  user      User              @relation("recipient", fields: [userId], references: [id], onDelete: Cascade)
+  actorId   String
+  actor     User              @relation("actor", fields: [actorId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  recipeId  String?
+  recipe    Recipe?           @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  read      Boolean           @default(false)
+  createdAt DateTime          @default(now())
+
+  @@index([userId, createdAt])
 }

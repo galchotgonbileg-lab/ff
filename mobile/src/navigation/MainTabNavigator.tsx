@@ -1,9 +1,13 @@
 import React from "react";
 import { Text } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { useQuery } from "@tanstack/react-query";
 import { FeedStackNavigator } from "./FeedStackNavigator";
 import { CreateRecipeScreen } from "../screens/CreateRecipeScreen";
+import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
+import { getUnreadCount } from "../api/notifications";
+import { useAuth } from "../context/AuthContext";
 import { colors } from "../theme";
 import type { MainTabParamList } from "./types";
 
@@ -12,10 +16,19 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const ICONS: Record<keyof MainTabParamList, string> = {
   FeedTab: "🍲",
   CreateTab: "➕",
+  NotificationsTab: "🔔",
   ProfileTab: "👤",
 };
 
 export function MainTabNavigator() {
+  const { user } = useAuth();
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ["notifications-unread-count"],
+    queryFn: getUnreadCount,
+    enabled: !!user,
+    refetchInterval: 30000,
+  });
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -33,10 +46,16 @@ export function MainTabNavigator() {
           paddingTop: 6,
           paddingBottom: 8,
         },
+        tabBarBadgeStyle: { backgroundColor: colors.danger },
       })}
     >
       <Tab.Screen name="FeedTab" component={FeedStackNavigator} options={{ title: "Жорууд" }} />
       <Tab.Screen name="CreateTab" component={CreateRecipeScreen} options={{ title: "Нийтлэх" }} />
+      <Tab.Screen
+        name="NotificationsTab"
+        component={NotificationsScreen}
+        options={{ title: "Мэдэгдэл", tabBarBadge: unreadCount > 0 ? unreadCount : undefined }}
+      />
       <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: "Профайл" }} />
     </Tab.Navigator>
   );

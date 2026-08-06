@@ -7,6 +7,7 @@ import recipeRoutes from "./routes/recipes";
 import userRoutes from "./routes/users";
 import adminRoutes from "./routes/admin";
 import ingredientRoutes from "./routes/ingredients";
+import notificationRoutes from "./routes/notifications";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use("/api/recipes", recipeRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/ingredients", ingredientRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.use(express.static(path.join(__dirname, "..", "pwa")));
 

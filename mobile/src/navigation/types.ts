@@ -9,6 +9,7 @@ export type FeedStackParamList = {
 export type MainTabParamList = {
   FeedTab: NavigatorScreenParams<FeedStackParamList> | undefined;
   CreateTab: undefined;
+  NotificationsTab: undefined;
   ProfileTab: undefined;
 };
 
