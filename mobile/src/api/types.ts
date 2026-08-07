@@ -35,3 +35,31 @@ export interface Comment {
   createdAt: string;
   user: User;
 }
+
+export interface Restaurant {
+  id: string;
+  authorId: string;
+  author: User;
+  name: string;
+  description: string;
+  address: string;
+  phone?: string | null;
+  category?: string | null;
+  priceRange?: string | null;
+  imageUrl?: string | null;
+  createdAt: string;
+  likeCount: number;
+  commentCount: number;
+  favoriteCount: number;
+  likedByMe?: boolean;
+  savedByMe?: boolean;
+}
+
+export interface RestaurantComment {
+  id: string;
+  userId: string;
+  restaurantId: string;
+  text: string;
+  createdAt: string;
+  user: User;
+}

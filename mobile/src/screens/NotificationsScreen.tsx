@@ -12,11 +12,12 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../navigation/types";
 
 function describe(notification: AppNotification): string {
+  const target = notification.recipe?.title ?? notification.restaurant?.name ?? "зүйл";
   switch (notification.type) {
     case "LIKE":
-      return `${notification.actor.username} таны "${notification.recipe?.title ?? "жор"}"-д таалагдлаа`;
+      return `${notification.actor.username} таны "${target}"-д таалагдлаа`;
     case "COMMENT":
-      return `${notification.actor.username} таны "${notification.recipe?.title ?? "жор"}"-д сэтгэгдэл бичлээ`;
+      return `${notification.actor.username} таны "${target}"-д сэтгэгдэл бичлээ`;
     case "FOLLOW":
       return `${notification.actor.username} таныг дагалаа`;
   }
@@ -57,6 +58,8 @@ export function NotificationsScreen() {
       navigation.navigate("FeedTab", { screen: "UserProfile", params: { userId: n.actor.id } });
     } else if (n.recipe) {
       navigation.navigate("FeedTab", { screen: "RecipeDetail", params: { recipeId: n.recipe.id } });
+    } else if (n.restaurant) {
+      navigation.navigate("RestaurantTab", { screen: "RestaurantDetail", params: { restaurantId: n.restaurant.id } });
     }
   }
 

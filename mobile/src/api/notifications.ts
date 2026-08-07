@@ -10,6 +10,7 @@ export interface AppNotification {
   createdAt: string;
   actor: User;
   recipe: { id: string; title: string; imageUrl: string | null } | null;
+  restaurant: { id: string; name: string; imageUrl: string | null } | null;
 }
 
 export function getNotifications() {

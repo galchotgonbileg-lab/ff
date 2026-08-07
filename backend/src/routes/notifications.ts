@@ -13,6 +13,7 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
     include: {
       actor: { select: { id: true, username: true, avatarUrl: true } },
       recipe: { select: { id: true, title: true, imageUrl: true } },
+      restaurant: { select: { id: true, name: true, imageUrl: true } },
     },
   });
   res.json({ notifications });

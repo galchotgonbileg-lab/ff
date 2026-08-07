@@ -3,6 +3,7 @@ import { Text } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useQuery } from "@tanstack/react-query";
 import { FeedStackNavigator } from "./FeedStackNavigator";
+import { RestaurantStackNavigator } from "./RestaurantStackNavigator";
 import { CreateRecipeScreen } from "../screens/CreateRecipeScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
@@ -16,6 +17,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const ICONS: Record<keyof MainTabParamList, string> = {
   FeedTab: "🍲",
   CreateTab: "➕",
+  RestaurantTab: "🏠",
   NotificationsTab: "🔔",
   ProfileTab: "👤",
 };
@@ -51,6 +53,7 @@ export function MainTabNavigator() {
     >
       <Tab.Screen name="FeedTab" component={FeedStackNavigator} options={{ title: "Жорууд" }} />
       <Tab.Screen name="CreateTab" component={CreateRecipeScreen} options={{ title: "Нийтлэх" }} />
+      <Tab.Screen name="RestaurantTab" component={RestaurantStackNavigator} options={{ title: "Ресторан" }} />
       <Tab.Screen
         name="NotificationsTab"
         component={NotificationsScreen}

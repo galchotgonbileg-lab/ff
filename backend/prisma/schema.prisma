@@ -22,6 +22,11 @@ model User {
   favorites    Favorite[]
   comments     Comment[]
 
+  restaurants          Restaurant[]
+  restaurantLikes      RestaurantLike[]
+  restaurantFavorites  RestaurantFavorite[]
+  restaurantComments   RestaurantComment[]
+
   following    Follow[]       @relation("following")
   followers    Follow[]       @relation("followers")
   notifications      Notification[] @relation("recipient")
@@ -123,6 +128,64 @@ model Favorite {
   @@index([recipeId])
 }
 
+model Restaurant {
+  id          String    @id @default(uuid())
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  name        String
+  description String
+  address     String
+  phone       String?
+  category    String?
+  priceRange  String?
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+
+  likes       RestaurantLike[]
+  favorites   RestaurantFavorite[]
+  comments    RestaurantComment[]
+  notifications Notification[]
+
+  @@index([authorId])
+  @@index([category])
+}
+
+model RestaurantLike {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, restaurantId])
+  @@index([restaurantId])
+}
+
+model RestaurantComment {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  text         String
+  createdAt    DateTime   @default(now())
+
+  @@index([restaurantId])
+}
+
+model RestaurantFavorite {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, restaurantId])
+  @@index([restaurantId])
+}
+
 model Follow {
   id          String   @id @default(uuid())
   followerId  String
@@ -150,6 +213,8 @@ model Notification {
   type      NotificationType
   recipeId  String?
   recipe    Recipe?           @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  restaurantId String?
+  restaurant   Restaurant?    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   read      Boolean           @default(false)
   createdAt DateTime          @default(now())
 

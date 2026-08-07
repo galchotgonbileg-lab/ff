@@ -4,6 +4,7 @@ import cors from "cors";
 import path from "path";
 import authRoutes from "./routes/auth";
 import recipeRoutes from "./routes/recipes";
+import restaurantRoutes from "./routes/restaurants";
 import userRoutes from "./routes/users";
 import adminRoutes from "./routes/admin";
 import ingredientRoutes from "./routes/ingredients";
@@ -20,6 +21,7 @@ app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/recipes", recipeRoutes);
+app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/ingredients", ingredientRoutes);

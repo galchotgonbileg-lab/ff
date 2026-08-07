@@ -6,6 +6,7 @@ export async function notify(params: {
   actorId: string; // who triggered it
   type: NotificationType;
   recipeId?: string;
+  restaurantId?: string;
 }) {
   if (params.userId === params.actorId) return; // never notify yourself
   await prisma.notification.create({
@@ -14,6 +15,7 @@ export async function notify(params: {
       actorId: params.actorId,
       type: params.type,
       recipeId: params.recipeId,
+      restaurantId: params.restaurantId,
     },
   });
 }
