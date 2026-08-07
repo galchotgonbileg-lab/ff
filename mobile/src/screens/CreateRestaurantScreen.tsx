@@ -111,7 +111,8 @@ export function CreateRestaurantScreen({ navigation }: Props) {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
+    <View style={styles.container}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
       <Text style={styles.heading}>Шинэ ресторан нэмэх</Text>
 
       <Pressable accessibilityRole="button" style={styles.imagePicker} onPress={pickImage}>
@@ -154,6 +155,7 @@ export function CreateRestaurantScreen({ navigation }: Props) {
         style={{ marginTop: spacing.lg }}
       />
     </ScrollView>
+    </View>
   );
 }
 
